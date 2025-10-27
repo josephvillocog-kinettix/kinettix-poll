@@ -86,7 +86,6 @@ export const createPoll = async (title: string, candidateNames: string[]): Promi
 
     // Reset the promise to force re-initialization on next data request
     pollsPromise = null;
-    initialize();
 
     return new Promise(resolve => setTimeout(() => resolve(newPoll), 100));
 };
@@ -151,7 +150,27 @@ export const togglePollStatus = async (pollId: string): Promise<Poll | null> => 
         allPolls[pollIndex] = updatedPoll;
         
         savePollsToStorage(allPolls);
+        pollsPromise = null;
         return updatedPoll;
     }
     return null;
+};
+
+export const deletePoll = async (pollId: string): Promise<void> => {
+    await initialize();
+    const pollIndex = allPolls.findIndex(p => p.id === pollId);
+    if (pollIndex > -1) {
+        allPolls.splice(pollIndex, 1);
+        savePollsToStorage(allPolls);
+        // Reset the promise to force re-initialization on next data request
+        pollsPromise = null;
+    }
+};
+
+export const deleteAllPolls = async (): Promise<void> => {
+    await initialize();
+    allPolls = [];
+    savePollsToStorage(allPolls);
+    // Reset the promise to force re-initialization on next data request
+    pollsPromise = null;
 };

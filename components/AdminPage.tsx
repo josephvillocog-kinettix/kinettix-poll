@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { createPoll, getAllPolls, togglePollStatus } from '../services/votingService';
+import { createPoll, getAllPolls, togglePollStatus, deletePoll, deleteAllPolls } from '../services/votingService';
 import { Poll } from '../types';
 
 interface AdminPageProps {
@@ -121,7 +121,14 @@ const ManagePolls: React.FC<{}> = () => {
     const handleToggleStatus = async (pollId: string) => {
         await togglePollStatus(pollId);
         fetchData();
-    }
+    };
+
+    const handleDeletePoll = async (pollId: string, pollTitle: string) => {
+        if (window.confirm(`Are you sure you want to delete the poll "${pollTitle}"? This action is permanent.`)) {
+            await deletePoll(pollId);
+            fetchData();
+        }
+    };
 
     if (isLoading) {
         return <div className="text-center text-gray-400 p-8">Loading polls...</div>
@@ -137,7 +144,7 @@ const ManagePolls: React.FC<{}> = () => {
                 <div key={poll.id} className="bg-gray-900/50 p-4 rounded-lg flex flex-wrap items-center justify-between gap-4 border border-gray-700 transition-all hover:border-indigo-500/50">
                     <div className="flex-grow">
                         <h3 className="text-lg font-bold text-white">{poll.title}</h3>
-                        <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-4 mt-1">
                             <p className="text-sm text-gray-400">{poll.candidates.length} candidates</p>
                             <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${poll.status === 'open' ? 'bg-green-900/70 text-green-300' : 'bg-red-900/70 text-red-300'}`}>
                                 {poll.status}
@@ -147,9 +154,15 @@ const ManagePolls: React.FC<{}> = () => {
                     <div className="flex-shrink-0 flex items-center space-x-2">
                         <button
                             onClick={() => handleToggleStatus(poll.id)}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 ${poll.status === 'open' ? 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500' : 'bg-gray-600 hover:bg-gray-500 text-white focus:ring-gray-400'}`}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 ${poll.status === 'open' ? 'bg-yellow-600 hover:bg-yellow-700 text-white focus:ring-yellow-500' : 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500'}`}
                         >
                             {poll.status === 'open' ? 'Close Poll' : 'Reopen Poll'}
+                        </button>
+                        <button
+                            onClick={() => handleDeletePoll(poll.id, poll.title)}
+                            className="px-3 py-1.5 text-xs font-medium rounded-md bg-red-800 hover:bg-red-700 text-white transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-red-500"
+                        >
+                            Delete
                         </button>
                     </div>
                 </div>
@@ -158,9 +171,49 @@ const ManagePolls: React.FC<{}> = () => {
     );
 };
 
+const SettingsTab: React.FC = () => {
+    const [isResetting, setIsResetting] = useState(false);
+    
+    const handleResetApp = async () => {
+        if (window.confirm('DANGER: Are you sure you want to reset the entire application? All polls and results will be permanently deleted. This action cannot be undone.')) {
+            setIsResetting(true);
+            await deleteAllPolls();
+            // Force a reload to clear all state and go back to the beginning
+            window.location.reload();
+        }
+    };
+
+    return (
+        <div className="space-y-8">
+            <div className="p-6 rounded-lg border-2 border-dashed border-red-500/50 bg-red-900/10">
+                <h3 className="text-xl font-bold text-red-400">Danger Zone</h3>
+                <p className="mt-2 text-gray-400">
+                    This action is destructive and cannot be undone. It will delete all polls and results.
+                </p>
+                <div className="mt-6">
+                     <button
+                        onClick={handleResetApp}
+                        disabled={isResetting}
+                        className="w-full sm:w-auto bg-red-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:bg-red-700 disabled:bg-red-900/50 disabled:cursor-not-allowed transition-all duration-300 text-base flex items-center justify-center"
+                    >
+                        {isResetting ? (
+                            <>
+                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Resetting...
+                            </>
+                        ) : 'Reset Application'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const AdminPage: React.FC<AdminPageProps> = ({ onPollCreated }) => {
-  const [activeTab, setActiveTab] = useState<'create' | 'manage'>('create');
+  const [activeTab, setActiveTab] = useState<'create' | 'manage' | 'settings'>('create');
 
   useEffect(() => {
     // If polls exist, default to manage tab
@@ -173,7 +226,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ onPollCreated }) => {
     checkPolls();
   }, []);
 
-  const tabButtonClasses = (tabName: 'create' | 'manage') =>
+  const tabButtonClasses = (tabName: 'create' | 'manage' | 'settings') =>
     `px-6 py-3 text-lg font-medium rounded-t-lg transition-colors duration-200 focus:outline-none border-b-4 ${
       activeTab === tabName
         ? 'border-indigo-500 text-white'
@@ -195,12 +248,14 @@ const AdminPage: React.FC<AdminPageProps> = ({ onPollCreated }) => {
             <div className="flex justify-center border-b border-gray-700 mb-8">
                 <button onClick={() => setActiveTab('manage')} className={tabButtonClasses('manage')}>Manage Polls</button>
                 <button onClick={() => setActiveTab('create')} className={tabButtonClasses('create')}>Create New</button>
+                <button onClick={() => setActiveTab('settings')} className={tabButtonClasses('settings')}>Settings</button>
             </div>
         </div>
 
         <div className="bg-gray-800/50 p-8 rounded-2xl shadow-2xl backdrop-blur-xl border border-indigo-500/20 shadow-[0_0_35px_rgba(99,102,241,0.1)] min-h-[300px]">
             {activeTab === 'create' && <CreatePollForm onPollCreated={onPollCreated} />}
             {activeTab === 'manage' && <ManagePolls />}
+            {activeTab === 'settings' && <SettingsTab />}
         </div>
       </div>
     </div>
