@@ -22,7 +22,7 @@ const Header: React.FC<HeaderProps> = ({ currentUser, currentView, setCurrentVie
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-4">
             <h1 className="text-2xl font-bold text-white tracking-tight">
-              Live<span className="text-indigo-400">Poll</span>
+              Kinettix<span className="text-red-400">Poll</span>
             </h1>
             <div className="flex items-center space-x-2">
               <button
