@@ -1,89 +1,124 @@
 
 import { Candidate, Poll } from '../types';
+import { v4 as uuidv4 } from 'uuid'; // A simple UUID generator will be needed
 
-// In a real app, this would be your backend server URL
-const API_BASE_URL = 'http://localhost:3001/api'; 
-
-const handleResponse = async (response: Response) => {
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'An unknown error occurred' }));
-    throw new Error(error.message || `HTTP error! status: ${response.status}`);
-  }
-  // Handle responses that might not have a body (like 204 No Content)
-  if (response.status === 204) {
-    return null;
-  }
-  return response.json();
+// We will use a simple in-memory UUID function if the library is not available in the environment.
+const generateUUID = () => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    // Fallback for environments without crypto.randomUUID
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
 };
 
-// --- Exported Functions ---
+
+const POLLS_STORAGE_KEY = 'kinettix-polls';
+
+// --- Internal Helper Functions ---
+
+const getPollsFromStorage = (): Poll[] => {
+  try {
+    const storedPolls = localStorage.getItem(POLLS_STORAGE_KEY);
+    if (storedPolls) {
+      return JSON.parse(storedPolls);
+    }
+  } catch (error) {
+    console.error('Error reading polls from localStorage:', error);
+  }
+  return []; // Return empty array if nothing is stored or an error occurs
+};
+
+const savePollsToStorage = (polls: Poll[]): void => {
+  try {
+    localStorage.setItem(POLLS_STORAGE_KEY, JSON.stringify(polls));
+  } catch (error) {
+    console.error('Error saving polls to localStorage:', error);
+  }
+};
+
+// --- Exported Functions (mimicking the async API) ---
 
 export const getActivePolls = async (): Promise<Poll[]> => {
-  const response = await fetch(`${API_BASE_URL}/polls?status=open`);
-  return handleResponse(response);
+  const polls = getPollsFromStorage();
+  return polls.filter(p => p.status === 'open');
 };
 
 export const getPollById = async (pollId: string): Promise<Poll | null> => {
-    const response = await fetch(`${API_BASE_URL}/polls/${pollId}`);
-    if (response.status === 404) return null;
-    return handleResponse(response);
+  const polls = getPollsFromStorage();
+  const poll = polls.find(p => p.id === pollId);
+  return poll || null;
 };
 
 export const getAllPolls = async (): Promise<Poll[]> => {
-    const response = await fetch(`${API_BASE_URL}/polls`);
-    return handleResponse(response);
+  return getPollsFromStorage();
 };
 
 export const createPoll = async (title: string, candidateNames: string[]): Promise<Poll> => {
-    const response = await fetch(`${API_BASE_URL}/polls`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, candidates: candidateNames }),
-    });
-    return handleResponse(response);
+  const polls = getPollsFromStorage();
+  const newPoll: Poll = {
+    id: generateUUID(),
+    title,
+    candidates: candidateNames.map(name => ({
+      id: generateUUID(),
+      name,
+      votes: 0,
+    })),
+    status: 'open',
+  };
+  
+  polls.push(newPoll);
+  savePollsToStorage(polls);
+  return newPoll;
 };
 
 export const submitVote = async (pollId: string, candidateId: string): Promise<void> => {
-  const response = await fetch(`${API_BASE_URL}/polls/${pollId}/vote`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ candidateId }),
-  });
-  // submitVote might not return a body, so we just check for success.
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'An unknown error occurred' }));
-    throw new Error(error.message || `HTTP error! status: ${response.status}`);
+  const polls = getPollsFromStorage();
+  const poll = polls.find(p => p.id === pollId);
+  if (!poll) {
+    throw new Error('Poll not found');
   }
+  if (poll.status === 'closed') {
+    throw new Error('This poll is closed');
+  }
+
+  const candidate = poll.candidates.find(c => c.id === candidateId);
+  if (!candidate) {
+    throw new Error('Candidate not found');
+  }
+
+  candidate.votes++;
+  savePollsToStorage(polls);
 };
 
 export const getResults = async (pollId: string): Promise<Candidate[]> => {
-  const response = await fetch(`${API_BASE_URL}/polls/${pollId}/results`);
-  return handleResponse(response);
+  const poll = await getPollById(pollId);
+  if (poll) {
+    return [...poll.candidates].sort((a, b) => b.votes - a.votes);
+  }
+  return [];
 };
 
 export const togglePollStatus = async (pollId: string): Promise<Poll | null> => {
-    const response = await fetch(`${API_BASE_URL}/polls/${pollId}/status`, {
-        method: 'PATCH', // PATCH is suitable for partial updates like changing status
-    });
-    return handleResponse(response);
+  const polls = getPollsFromStorage();
+  const poll = polls.find(p => p.id === pollId);
+  if (!poll) {
+    return null;
+  }
+  
+  poll.status = poll.status === 'open' ? 'closed' : 'open';
+  savePollsToStorage(polls);
+  return poll;
 };
 
 export const deletePoll = async (pollId: string): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/polls/${pollId}`, {
-        method: 'DELETE',
-    });
-    if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'An unknown error occurred' }));
-        throw new Error(error.message || `HTTP error! status: ${response.status}`);
-    }
+  let polls = getPollsFromStorage();
+  polls = polls.filter(p => p.id !== pollId);
+  savePollsToStorage(polls);
 };
 
 export const deleteAllPolls = async (): Promise<void> => {
-    const response = await fetch(`${API_BASE_URL}/polls`, {
-        method: 'DELETE',
-    });
-     if (!response.ok) {
-        const error = await response.json().catch(() => ({ message: 'An unknown error occurred' }));
-        throw new Error(error.message || `HTTP error! status: ${response.status}`);
-    }
+  savePollsToStorage([]);
 };
