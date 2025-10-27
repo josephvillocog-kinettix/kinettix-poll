@@ -1,0 +1,5 @@
+{
+  "name": "Kinettix Poll",
+  "description": "A real-time voting application where users can vote for their favorite candidate. The app features a live dashboard to display the top 5 results.",
+  "requestFramePermissions": []
+}
