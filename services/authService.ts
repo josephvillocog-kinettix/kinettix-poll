@@ -25,7 +25,7 @@ export const getCurrentUser = (): User | null => {
     const userJson = sessionStorage.getItem(CURRENT_USER_KEY);
     if (!userJson) return null;
     const userData = JSON.parse(userJson);
-    return new User(userData.username, userData.name, userData.department);
+    return new User(userData.username, userData.name, userData.department, userData.poll1 || '', userData.poll2 || '');
   } catch (error) {
     console.error("Failed to parse user from sessionStorage", error);
     return null;
@@ -47,4 +47,8 @@ export const updateUsers = async (usernames: string[]): Promise<void> => {
   
   // Delegate the actual API call to the apiService.
   await apiService.updateUsers(finalUsernames);
+};
+
+export const updateCurrentUserInSession = (user: User): void => {
+  sessionStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
 };

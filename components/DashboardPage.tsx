@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Poll } from '../types';
+import { Poll, User } from '../types';
 import { getAllPolls } from '../services/votingService';
+import * as authService from '../services/authService';
+
 
 // --- Sub-components for the Accordion Layout ---
 
@@ -102,27 +104,63 @@ const PollAccordionItem: React.FC<{ poll: Poll; isExpanded: boolean; onToggle: (
 const DashboardPage: React.FC = () => {
   const [polls, setPolls] = useState<Poll[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedPollId, setExpandedPollId] = useState<string | null>(null);
   const [anonymize, setAnonymize] = useState(true);
 
   useEffect(() => {
-    const fetchPolls = async () => {
-      if(polls.length === 0) setIsLoading(true);
+    const fetchAndProcessData = async () => {
+      // For the initial load, show the spinner. For refreshes, use the fade animation.
+      if (!polls.length) setIsLoading(true);
+      setIsRefreshing(true);
       setError(null);
+
       try {
-        const allPolls = await getAllPolls();
-        const sortedPolls = [...allPolls].sort((a, b) => (a.status === 'open' ? -1 : 1) - (b.status === 'open' ? -1 : 1) || b.id.localeCompare(a.id));
+        // Fetch both polls and users data concurrently
+        const [allPolls, allUsers] = await Promise.all([
+          getAllPolls(),
+          authService.getUsers()
+        ]);
+
+        // Calculate vote counts from user data
+        const pollsWithCalculatedVotes = allPolls.map(poll => {
+          const voteCounts = new Map<string, number>();
+          // Determine which user property to check based on the poll ID
+          const pollFieldName = poll.id === '1' ? 'poll1' : 'poll2';
+
+          for (const user of allUsers) {
+            // Get the candidate name the user voted for in this poll
+            const votedFor = user[pollFieldName as keyof User] as string;
+            if (votedFor) {
+              voteCounts.set(votedFor, (voteCounts.get(votedFor) || 0) + 1);
+            }
+          }
+
+          // Update each candidate with the new vote count
+          const updatedCandidates = poll.candidates.map(candidate => ({
+            ...candidate,
+            votes: voteCounts.get(candidate.name) || 0,
+          }));
+
+          return { ...poll, candidates: updatedCandidates };
+        });
+
+        // Sort polls for display (open polls first)
+        const sortedPolls = [...pollsWithCalculatedVotes].sort((a, b) => (a.status === 'open' ? -1 : 1) - (b.status === 'open' ? -1 : 1) || b.id.localeCompare(a.id));
         setPolls(sortedPolls);
       } catch (err) {
-        setError('Failed to load poll list.');
+        console.error("Error fetching dashboard data:", err);
+        setError('Failed to load poll data.');
       } finally {
         setIsLoading(false);
+        // A slight delay before fading back in makes the animation feel smoother.
+        setTimeout(() => setIsRefreshing(false), 300);
       }
     };
 
-    fetchPolls();
-    const interval = setInterval(fetchPolls, 5000);
+    fetchAndProcessData();
+    const interval = setInterval(fetchAndProcessData, 2000);
     return () => clearInterval(interval);
   }, []);
 
@@ -144,11 +182,7 @@ const DashboardPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="text-center mb-12">
-            <h2 className="text-4xl font-extrabold text-white sm:text-5xl tracking-tight">Dashboard</h2>
-            <p className="mt-4 text-xl text-gray-300">A complete overview of all poll results.</p>
-        </div>
-        
+      
         {polls.length === 0 ? (
             <div className="text-center p-8 mt-10 bg-gray-800/50 rounded-2xl border border-gray-700/50">
                 <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-24 w-24 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -171,7 +205,7 @@ const DashboardPage: React.FC = () => {
                     </label>
                 </div>
                 
-                <div className="space-y-4">
+                <div className={`space-y-4 transition-opacity duration-500 ease-in-out ${isRefreshing ? 'opacity-50' : 'opacity-100'}`}>
                     {polls.map(poll => (
                         <PollAccordionItem 
                             key={poll.id} 

@@ -51,6 +51,12 @@ const Header: React.FC<HeaderProps> = ({ currentUser, currentView, setCurrentVie
                   >
                     Users
                   </button>
+                  <button
+                    onClick={() => setCurrentView('debug')}
+                    className={navItemClasses('debug')}
+                  >
+                    Debug
+                  </button>
                 </>
               )}
             </div>

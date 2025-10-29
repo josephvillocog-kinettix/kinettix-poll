@@ -62,11 +62,11 @@ const fetchData = async (): Promise<{ users: User[]; polls: Poll[] }> => {
         
         const users: User[] = (userList || [])
             .filter(u => u && u.username && u.name && (u.department || u.depart))
-            .map(u => new User(u.username, u.name, u.department || u.depart));
+            .map(u => new User(u.username, u.name, u.department || u.depart, u.poll1 || '', u.poll2 || ''));
         
         // Always ensure admin user exists
         if (!users.some(u => u.username === 'saitama')) {
-            users.push(new User('saitama', 'Saitama', 'Admin'));
+            users.push(new User('saitama', 'Saitama', 'Admin', '', ''));
         }
 
         cachedData = { users, polls };
@@ -75,7 +75,7 @@ const fetchData = async (): Promise<{ users: User[]; polls: Poll[] }> => {
     } catch (error) {
         console.error("Failed to fetch or parse data from API:", error);
         // Fallback to ensure admin can always log in to debug.
-        return { users: [new User('saitama', 'Saitama', 'Admin')], polls: [] };
+        return { users: [new User('saitama', 'Saitama', 'Admin', '', '')], polls: [] };
     }
 };
 

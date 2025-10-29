@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbyoIV6jfTE_ZG_PIaXoqAjh0gu-xJEFui40F-IfSCynERTZAaNBg9xGHIkudiB6IIC0/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzf7KeZbSInNcNWw2QdjNWLyG2JVoAI_HT4yQ6xS5LInDhNGSPN9ohg0yVNdYYrQ4KL/exec';
 
 const ApiDebugPage: React.FC = () => {
   const [loading, setLoading] = useState(true);

@@ -20,8 +20,6 @@ const PollDetailView: React.FC<{ pollId: string; onBack: () => void; showBackBut
   const [hasVoted, setHasVoted] = useState(false);
 
   useEffect(() => {
-    setHasVoted(votingService.hasVotedInPoll(pollId));
-
     const fetchPoll = async () => {
       setIsLoading(true);
       try {
@@ -35,6 +33,12 @@ const PollDetailView: React.FC<{ pollId: string; onBack: () => void; showBackBut
     };
     fetchPoll();
   }, [pollId]);
+
+  useEffect(() => {
+    if (poll && currentUser) {
+      setHasVoted(votingService.hasVotedInPoll(poll, currentUser));
+    }
+  }, [poll, currentUser]);
   
   const handleSelectCandidate = (candidateId: string) => {
     if (poll?.status === 'open' && !hasVoted) {
