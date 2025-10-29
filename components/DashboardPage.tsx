@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Poll, User } from '../types';
 import { getAllPolls } from '../services/votingService';
 import * as authService from '../services/authService';
+import * as apiService from '../services/apiService';
 
 
 // --- Sub-components for the Accordion Layout ---
@@ -104,19 +105,16 @@ const PollAccordionItem: React.FC<{ poll: Poll; isExpanded: boolean; onToggle: (
 const DashboardPage: React.FC = () => {
   const [polls, setPolls] = useState<Poll[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedPollId, setExpandedPollId] = useState<string | null>(null);
   const [anonymize, setAnonymize] = useState(true);
 
   useEffect(() => {
     const fetchAndProcessData = async () => {
-      // For the initial load, show the spinner. For refreshes, use the fade animation.
-      if (!polls.length) setIsLoading(true);
-      setIsRefreshing(true);
-      setError(null);
-
       try {
+        // Clear the cache before fetching to ensure we get the latest data.
+        apiService.clearCache();
+
         // Fetch both polls and users data concurrently
         const [allPolls, allUsers] = await Promise.all([
           getAllPolls(),
@@ -149,13 +147,12 @@ const DashboardPage: React.FC = () => {
         // Sort polls for display (open polls first)
         const sortedPolls = [...pollsWithCalculatedVotes].sort((a, b) => (a.status === 'open' ? -1 : 1) - (b.status === 'open' ? -1 : 1) || b.id.localeCompare(a.id));
         setPolls(sortedPolls);
+        setError(null); // Clear any previous error on a successful fetch.
       } catch (err) {
         console.error("Error fetching dashboard data:", err);
         setError('Failed to load poll data.');
       } finally {
         setIsLoading(false);
-        // A slight delay before fading back in makes the animation feel smoother.
-        setTimeout(() => setIsRefreshing(false), 300);
       }
     };
 
@@ -168,12 +165,9 @@ const DashboardPage: React.FC = () => {
     setExpandedPollId(currentId => (currentId === pollId ? null : pollId));
   };
   
+  // Render nothing on the initial load to prevent content flashing.
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-[calc(100vh-10rem)]">
-        <div className="animate-spin rounded-full h-24 w-24 border-t-2 border-b-2 border-indigo-500"></div>
-      </div>
-    );
+    return null;
   }
 
   if (error) {
@@ -205,7 +199,7 @@ const DashboardPage: React.FC = () => {
                     </label>
                 </div>
                 
-                <div className={`space-y-4 transition-opacity duration-500 ease-in-out ${isRefreshing ? 'opacity-50' : 'opacity-100'}`}>
+                <div className="space-y-4">
                     {polls.map(poll => (
                         <PollAccordionItem 
                             key={poll.id} 
