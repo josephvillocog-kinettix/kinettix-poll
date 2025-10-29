@@ -1,6 +1,6 @@
 import { User, Poll, Candidate } from '../types';
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbyoIV6jfTE_ZG_PIaXoqAjh0gu-xJEFui40F-IfSCynERTZAaNBg9xGHIkudiB6IIC0/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbwNyNYjAi9TRI9PLaUwZxqe-_c1SGi3rfyb-Fm7bkACX0ZqERavwauT5qqhiDGTRQig/exec';
 
 let cachedData: {
     users: User[];
@@ -96,10 +96,6 @@ export const updateUsers = async (usernames: string[]): Promise<void> => {
   try {
     const response = await fetch(API_URL, {
       method: 'POST',
-      mode: 'cors',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify({
         action: 'updateUsers',
         payload: usernames,
@@ -114,6 +110,34 @@ export const updateUsers = async (usernames: string[]): Promise<void> => {
     clearCache();
   } catch (error) {
     console.error("Failed to update users via API:", error);
+    throw error;
+  }
+};
+
+export const castVote = async (pollId: string, candidateId: string, username: string): Promise<void> => {
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'castVote',
+        payload: {
+          pollId,
+          candidateId,
+          username,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API request failed to cast vote with status ${response.status}: ${errorText}`);
+    }
+    
+    // Invalidate the cache to ensure the next data fetch includes the new vote.
+    clearCache();
+
+  } catch (error) {
+    console.error("Failed to cast vote via API:", error);
     throw error;
   }
 };

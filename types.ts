@@ -23,4 +23,4 @@ export class User {
   }
 }
 
-export type AppView = 'voting' | 'dashboard' | 'admin' | 'users' | 'api-debug';
+export type AppView = 'voting' | 'dashboard' | 'admin' | 'users';

@@ -5,7 +5,6 @@ import DashboardPage from './components/DashboardPage';
 import LoginPage from './components/LoginPage';
 import AdminPage from './components/AdminPage';
 import UserListPage from './components/UserListPage';
-import ApiDebugPage from './components/ApiDebugPage';
 import { AppView, User } from './types';
 import * as authService from './services/authService';
 
@@ -45,7 +44,6 @@ function App() {
         {currentView === 'dashboard' && currentUser.username === 'saitama' && <DashboardPage />}
         {currentView === 'admin' && currentUser.username === 'saitama' && <AdminPage />}
         {currentView === 'users' && currentUser.username === 'saitama' && <UserListPage />}
-        {currentView === 'api-debug' && currentUser.username === 'saitama' && <ApiDebugPage />}
       </main>
     </div>
   );
