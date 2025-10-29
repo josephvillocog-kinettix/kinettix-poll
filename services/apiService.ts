@@ -19,78 +19,61 @@ const fetchData = async (): Promise<{ users: User[]; polls: Poll[] }> => {
         }
         const json: any = await response.json();
 
-        // Prioritize the 'data' property if it exists, otherwise use the root object.
-        // This directly addresses the API structure where user/poll data is nested.
-        const sourceData = json.data || json;
-
-        let userList: any[] = [];
-        let pollList: any[] = [];
-        let candidateList: any[] = []; 
-
-        const processArray = (arr: any[]) => {
-            if (!Array.isArray(arr) || arr.length === 0) return;
-            const firstItem = arr[0];
-            if (firstItem.hasOwnProperty('username') && firstItem.hasOwnProperty('name') && userList.length === 0) {
-                userList = arr;
-            } else if (firstItem.hasOwnProperty('title') && firstItem.hasOwnProperty('status') && pollList.length === 0) {
-                pollList = arr;
-            } else if (firstItem.hasOwnProperty('poll_id') && firstItem.hasOwnProperty('name') && candidateList.length === 0) {
-                candidateList = arr;
-            }
-        };
-
-        if (Array.isArray(sourceData)) {
-            processArray(sourceData);
-        } else if (typeof sourceData === 'object' && sourceData !== null) {
-            for (const key in sourceData) {
-                if (Object.prototype.hasOwnProperty.call(sourceData, key) && Array.isArray(sourceData[key])) {
-                    processArray(sourceData[key]);
-                }
-            }
+        // The API nests all data under a 'data' object.
+        const data = json.data;
+        if (!data) {
+            throw new Error("API response is missing the 'data' object.");
         }
 
-        if (pollList.length > 0 && candidateList.length > 0) {
-            const candidatesByPollId = new Map<string, any[]>();
-            candidateList.forEach(c => {
-                const pollId = String(c.poll_id);
-                if (!candidatesByPollId.has(pollId)) {
-                    candidatesByPollId.set(pollId, []);
-                }
-                candidatesByPollId.get(pollId)!.push(c);
-            });
+        // Get the arrays directly by their keys as specified by the user.
+        const userList: any[] = data.users || [];
+        const pollList: any[] = data.polls || [];
+        const candidateList: any[] = data.candidates || [];
 
-            pollList.forEach(p => {
+        // Map candidates to their respective polls using poll_id.
+        const candidatesByPollId = new Map<string, any[]>();
+        candidateList.forEach(c => {
+            if (c.poll_id === undefined) return;
+            const pollId = String(c.poll_id);
+            if (!candidatesByPollId.has(pollId)) {
+                candidatesByPollId.set(pollId, []);
+            }
+            candidatesByPollId.get(pollId)!.push(c);
+        });
+
+        const polls: Poll[] = (pollList || [])
+            .filter(p => p && p.id && p.title && p.status)
+            .map((p): Poll => {
                 const pollId = String(p.id);
-                p.candidates = candidatesByPollId.get(pollId) || [];
+                const pollCandidatesData = candidatesByPollId.get(pollId) || [];
+                
+                return {
+                    id: pollId,
+                    title: p.title,
+                    status: p.status === 'open' ? 'open' : 'closed',
+                    candidates: pollCandidatesData.map((c: any): Candidate => ({
+                        id: String(c.id),
+                        name: c.name,
+                        votes: Number(c.votes) || 0,
+                    })),
+                }
             });
-        }
-
+        
         const users: User[] = (userList || [])
             .filter(u => u && u.username && u.name && (u.department || u.depart))
             .map(u => new User(u.username, u.name, u.department || u.depart));
         
+        // Always ensure admin user exists
         if (!users.some(u => u.username === 'saitama')) {
             users.push(new User('saitama', 'Saitama', 'Admin'));
         }
-
-        const polls: Poll[] = (pollList || [])
-            .filter(p => p && p.id && p.title && p.status && Array.isArray(p.candidates))
-            .map((p): Poll => ({
-                id: String(p.id),
-                title: p.title,
-                status: p.status === 'open' ? 'open' : 'closed',
-                candidates: (p.candidates || []).map((c: any): Candidate => ({
-                    id: String(c.id),
-                    name: c.name,
-                    votes: Number(c.votes) || 0,
-                })),
-            }));
 
         cachedData = { users, polls };
         return cachedData;
 
     } catch (error) {
         console.error("Failed to fetch or parse data from API:", error);
+        // Fallback to ensure admin can always log in to debug.
         return { users: [new User('saitama', 'Saitama', 'Admin')], polls: [] };
     }
 };
