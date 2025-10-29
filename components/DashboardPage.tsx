@@ -2,7 +2,23 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Poll } from '../types';
 import { getAllPolls } from '../services/votingService';
 
-// --- Sub-components for the new Accordion Layout ---
+// --- Sub-components for the Accordion Layout ---
+
+const CandidateRow: React.FC<{ candidate: Poll['candidates'][0]; totalVotes: number; anonymize: boolean; index: number; }> = ({ candidate, totalVotes, anonymize, index }) => {
+    const percentage = totalVotes > 0 ? (candidate.votes / totalVotes) * 100 : 0;
+    const displayName = anonymize ? `Candidate ${String.fromCharCode(65 + index)}` : candidate.name;
+    return (
+        <div key={candidate.id}>
+            <div className="flex justify-between items-center text-sm mb-1.5">
+                <span className="text-gray-200 font-medium truncate pr-2">{displayName}</span>
+                <span className="text-white font-mono font-semibold flex-shrink-0">{candidate.votes.toLocaleString()}</span>
+            </div>
+            <div className="w-full bg-gray-700/50 rounded-full h-2.5 overflow-hidden">
+                <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2.5 rounded-full" style={{ width: `${percentage}%`, transition: 'width 0.5s ease-out' }}></div>
+            </div>
+        </div>
+    );
+};
 
 const PollAccordionItem: React.FC<{ poll: Poll; isExpanded: boolean; onToggle: () => void; anonymize: boolean; }> = ({ poll, isExpanded, onToggle, anonymize }) => {
     const sortedCandidates = useMemo(() => 
@@ -13,9 +29,12 @@ const PollAccordionItem: React.FC<{ poll: Poll; isExpanded: boolean; onToggle: (
         sortedCandidates.reduce((sum, c) => sum + c.votes, 0),
         [sortedCandidates]
     );
+    
+    const topCandidates = sortedCandidates.slice(0, 5);
+    const remainingCandidates = sortedCandidates.slice(5);
 
     return (
-        <div className="bg-gray-800/50 rounded-xl border border-gray-700/50 overflow-hidden transition-all duration-300">
+        <div className="bg-gray-800/50 rounded-xl border border-gray-700/50 overflow-hidden">
             <button 
                 onClick={onToggle} 
                 className="w-full p-6 text-left flex justify-between items-center hover:bg-gray-700/50 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -40,34 +59,40 @@ const PollAccordionItem: React.FC<{ poll: Poll; isExpanded: boolean; onToggle: (
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
             </button>
-            <div 
-                className={`transition-all duration-500 ease-in-out grid ${isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
-            >
-                <div className="overflow-hidden">
-                    <div className="p-6 pt-0 border-t border-gray-700/50">
-                        <div className="space-y-4 mt-4">
-                            {sortedCandidates.length > 0 ? (
-                                sortedCandidates.map((candidate, index) => {
-                                    const percentage = totalVotes > 0 ? (candidate.votes / totalVotes) * 100 : 0;
-                                    const displayName = anonymize ? `Candidate ${String.fromCharCode(65 + index)}` : candidate.name;
-                                    return (
-                                        <div key={candidate.id}>
-                                            <div className="flex justify-between items-center text-sm mb-1.5">
-                                                <span className="text-gray-200 font-medium truncate pr-2">{displayName}</span>
-                                                <span className="text-white font-mono font-semibold flex-shrink-0">{candidate.votes.toLocaleString()}</span>
-                                            </div>
-                                            <div className="w-full bg-gray-700/50 rounded-full h-2.5 overflow-hidden">
-                                                <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2.5 rounded-full" style={{ width: `${percentage}%`, transition: 'width 0.5s ease-out' }}></div>
-                                            </div>
-                                        </div>
-                                    );
-                                })
-                            ) : (
-                                <p className="text-gray-400 text-center py-4">No candidates or votes in this poll yet.</p>
-                            )}
+            <div className="px-6 pb-6 border-t border-gray-700/50">
+                <div className="space-y-4 mt-4">
+                    {topCandidates.length > 0 ? (
+                        topCandidates.map((candidate, index) => (
+                            <CandidateRow 
+                                key={candidate.id}
+                                candidate={candidate}
+                                totalVotes={totalVotes}
+                                anonymize={anonymize}
+                                index={index}
+                            />
+                        ))
+                    ) : (
+                        <p className="text-gray-400 text-center py-4">No candidates or votes in this poll yet.</p>
+                    )}
+                </div>
+                
+                {remainingCandidates.length > 0 && (
+                     <div className={`transition-all duration-500 ease-in-out grid ${isExpanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                        <div className="overflow-hidden">
+                             <div className="space-y-4 mt-4 pt-4 border-t border-dashed border-gray-600">
+                                {remainingCandidates.map((candidate, index) => (
+                                     <CandidateRow 
+                                        key={candidate.id}
+                                        candidate={candidate}
+                                        totalVotes={totalVotes}
+                                        anonymize={anonymize}
+                                        index={index + 5}
+                                    />
+                                ))}
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
             </div>
         </div>
     );
