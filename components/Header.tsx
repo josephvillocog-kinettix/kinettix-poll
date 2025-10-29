@@ -1,8 +1,8 @@
 import React from 'react';
-import { AppView } from '../types';
+import { AppView, User } from '../types';
 
 interface HeaderProps {
-  currentUser: string;
+  currentUser: User;
   currentView: AppView;
   setCurrentView: (view: AppView) => void;
   onLogout: () => void;
@@ -29,9 +29,9 @@ const Header: React.FC<HeaderProps> = ({ currentUser, currentView, setCurrentVie
                 onClick={() => setCurrentView('voting')}
                 className={navItemClasses('voting')}
               >
-                Vote
+                Polls
               </button>
-              {currentUser === 'saitama' && (
+              {currentUser.username === 'saitama' && (
                 <>
                   <button
                     onClick={() => setCurrentView('dashboard')}
@@ -46,19 +46,26 @@ const Header: React.FC<HeaderProps> = ({ currentUser, currentView, setCurrentVie
                     Admin
                   </button>
                    <button
-                    onClick={() => setCurrentView('user-management')}
-                    className={navItemClasses('user-management')}
+                    onClick={() => setCurrentView('users')}
+                    className={navItemClasses('users')}
                   >
                     Users
+                  </button>
+                  <button
+                    onClick={() => setCurrentView('api-debug')}
+                    className={navItemClasses('api-debug')}
+                  >
+                    API Debug
                   </button>
                 </>
               )}
             </div>
           </div>
           <div className="flex items-center space-x-4">
-            <span className="text-gray-300 text-sm">
-              Welcome, <span className="font-medium text-white">{currentUser}</span>
-            </span>
+            <div className="text-right">
+                <span className="block text-gray-300 text-sm font-medium text-white">{currentUser.name}</span>
+                <span className="block text-xs text-gray-400">{currentUser.department}</span>
+            </div>
             <button
               onClick={onLogout}
               className="px-4 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 focus:ring-indigo-500"

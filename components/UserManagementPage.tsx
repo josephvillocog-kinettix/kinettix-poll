@@ -1,12 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import * as authService from '../services/authService';
 
 const UserManagementPage: React.FC = () => {
-  const [userList, setUserList] = useState(authService.getUsers().join(', '));
+  // Fix: Initialize userList to an empty string and fetch users asynchronously in useEffect.
+  const [userList, setUserList] = useState('');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [error, setError] = useState<string | null>(null);
 
-  const handleSave = () => {
+  useEffect(() => {
+    const loadUsers = async () => {
+        try {
+            const users = await authService.getUsers();
+            // Fix: Map User objects to usernames before joining into a string.
+            setUserList(users.map(u => u.username).join(', '));
+        } catch (e) {
+            setError('Failed to load user list.');
+        }
+    };
+    loadUsers();
+  }, []);
+
+  // Fix: Made handleSave async to correctly handle promises when updating and refetching users.
+  const handleSave = async () => {
     setError(null);
     setSaveStatus('saving');
 
@@ -22,9 +37,13 @@ const UserManagementPage: React.FC = () => {
     }
 
     try {
-        authService.updateUsers(users);
+        // FIX: Await the async updateUsers call to ensure it completes before fetching the updated list.
+        await authService.updateUsers(users);
         // Refresh the text area to show the cleaned and sorted list (with admin added)
-        setUserList(authService.getUsers().join(', '));
+        // Fix: Await the async getUsers() call.
+        const updatedUsers = await authService.getUsers();
+        // Fix: Map User objects to usernames before joining into a string.
+        setUserList(updatedUsers.map(u => u.username).join(', '));
         setSaveStatus('saved');
         setTimeout(() => setSaveStatus('idle'), 2000);
     } catch (e) {

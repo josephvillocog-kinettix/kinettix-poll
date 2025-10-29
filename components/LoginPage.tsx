@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
-import { getUsers } from '../services/authService';
 import Snowfall from './Snowfall';
 
 interface LoginPageProps {
-  onLogin: (username: string) => void;
+  onLogin: (username: string) => Promise<void>;
 }
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
   const [username, setUsername] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     const trimmedUsername = username.trim();
@@ -20,11 +20,13 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       return;
     }
 
-    const users = getUsers();
-    if (users.includes(trimmedUsername)) {
-      onLogin(trimmedUsername);
-    } else {
+    setIsLoggingIn(true);
+    try {
+      await onLogin(trimmedUsername);
+      // On success, the App component will re-render, and this component will unmount.
+    } catch (err) {
       setError('Invalid username. Please try again.');
+      setIsLoggingIn(false);
     }
   };
 
@@ -71,9 +73,18 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
           <div>
             <button
               type="submit"
-              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-red-500 transition-colors"
+              disabled={isLoggingIn}
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-red-500 transition-colors disabled:bg-red-800 disabled:cursor-wait"
             >
-              Sign In
+              {isLoggingIn ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Signing In...
+                </>
+              ) : 'Sign In'}
             </button>
           </div>
         </form>

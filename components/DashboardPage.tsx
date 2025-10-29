@@ -79,14 +79,8 @@ const PollResults: React.FC<{ poll: Poll }> = ({ poll }) => {
         };
 
         fetchResults();
-        
-        // Set up interval to refresh results for open polls
-        if (poll.status === 'open') {
-            const intervalId = setInterval(fetchResults, 3000);
-            return () => clearInterval(intervalId);
-        }
 
-    }, [poll.id, poll.status]);
+    }, [poll.id]);
     
     const totalVotes = useMemo(() => results.reduce((sum, candidate) => sum + candidate.votes, 0), [results]);
 
@@ -189,7 +183,7 @@ const PollResults: React.FC<{ poll: Poll }> = ({ poll }) => {
                         </div>
                     ) : (
                         <div className="flex items-center justify-center h-64 text-gray-400">
-                            <p>Waiting for votes...</p>
+                            <p>No votes have been cast in this poll yet.</p>
                         </div>
                     )}
                 </div>
@@ -304,7 +298,7 @@ const PollResults: React.FC<{ poll: Poll }> = ({ poll }) => {
                         </div>
                     ) : (
                         <div className="flex items-center justify-center h-64 text-gray-400 absolute">
-                            <p>Waiting for votes...</p>
+                            <p>No votes have been cast in this poll yet.</p>
                         </div>
                     )}
                  </div>
@@ -326,7 +320,6 @@ const DashboardPage: React.FC = () => {
         const sortedPolls = [...allPolls].reverse(); // newest first
         setPolls(sortedPolls);
 
-        // Auto-expand the first open poll, or the first poll if none are open
         if (sortedPolls.length > 0) {
           const firstOpenPoll = sortedPolls.find(p => p.status === 'open');
           setExpandedPollId(firstOpenPoll ? firstOpenPoll.id : sortedPolls[0].id);
@@ -365,7 +358,7 @@ const DashboardPage: React.FC = () => {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16m-7 6h7" />
         </svg>
         <h2 className="mt-6 text-3xl font-extrabold text-white">No Polls Found</h2>
-        <p className="mt-2 text-lg text-gray-300">Create a poll from the Admin page to see results here.</p>
+        <p className="mt-2 text-lg text-gray-300">Data is managed via the connected Google Sheet.</p>
       </div>
     );
   }

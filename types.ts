@@ -11,4 +11,16 @@ export interface Poll {
   status: 'open' | 'closed';
 }
 
-export type AppView = 'voting' | 'dashboard' | 'admin' | 'user-management';
+export class User {
+  username: string;
+  name: string;
+  department: string;
+
+  constructor(username: string, name: string, department: string) {
+    this.username = username;
+    this.name = name;
+    this.department = department;
+  }
+}
+
+export type AppView = 'voting' | 'dashboard' | 'admin' | 'users' | 'api-debug';
