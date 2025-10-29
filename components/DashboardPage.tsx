@@ -4,36 +4,6 @@ import { getAllPolls } from '../services/votingService';
 
 // --- Sub-components for the new Accordion Layout ---
 
-const DashboardMetrics: React.FC<{ polls: Poll[] }> = ({ polls }) => {
-    const totalPolls = polls.length;
-    const activePolls = polls.filter(p => p.status === 'open').length;
-    const totalVotes = polls.reduce((sum, poll) => sum + poll.candidates.reduce((voteSum, c) => voteSum + c.votes, 0), 0);
-    
-    const metrics = [
-        { label: 'Total Polls', value: totalPolls, icon: 'M4 6h16M4 12h16m-7 6h7' },
-        { label: 'Active Polls', value: activePolls, icon: 'M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7.014A8.003 8.003 0 0122 12c0 3-1 7-6.343 6.657z' },
-        { label: 'Total Votes Cast', value: totalVotes.toLocaleString(), icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' },
-    ];
-
-    return (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-            {metrics.map(metric => (
-                <div key={metric.label} className="bg-gray-800/50 p-6 rounded-xl shadow-lg border border-gray-700/50 flex items-center gap-6">
-                    <div className="bg-indigo-900/50 p-4 rounded-full">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-indigo-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={metric.icon} />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-400 uppercase tracking-wider">{metric.label}</p>
-                      <p className="text-4xl font-extrabold text-white mt-1">{metric.value}</p>
-                    </div>
-                </div>
-            ))}
-        </div>
-    );
-};
-
 const PollAccordionItem: React.FC<{ poll: Poll; isExpanded: boolean; onToggle: () => void; anonymize: boolean; }> = ({ poll, isExpanded, onToggle, anonymize }) => {
     const sortedCandidates = useMemo(() => 
         [...poll.candidates].sort((a, b) => b.votes - a.votes), 
@@ -164,8 +134,6 @@ const DashboardPage: React.FC = () => {
             </div>
         ) : (
             <>
-                <DashboardMetrics polls={polls} />
-                
                 <div className="flex justify-end mb-6">
                     <label className="flex items-center space-x-3 cursor-pointer text-gray-300 hover:text-white p-2 rounded-lg hover:bg-gray-700/50 transition-colors">
                         <input 
