@@ -4,6 +4,13 @@ import * as votingService from '../services/votingService';
 import CandidateCard from './CandidateCard';
 import Snowfall from './Snowfall';
 
+const POLL_CARD_GRADIENTS = [
+  'from-indigo-500 to-purple-600',
+  'from-sky-500 to-teal-500',
+  'from-amber-500 to-orange-600',
+  'from-rose-500 to-pink-600',
+];
+
 interface VotingPageProps {
   currentUser: User;
 }
@@ -281,21 +288,43 @@ const VotingPage: React.FC<VotingPageProps> = ({ currentUser }) => {
             </div>
             {error && <p className="text-red-400 text-center mb-4">{error}</p>}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {activePolls.map(poll => (
-                    <div 
-                        key={poll.id} 
-                        onClick={() => handleSelectPoll(poll.id)}
-                        className="bg-red-900/40 backdrop-blur-sm p-6 rounded-xl shadow-lg border border-red-800/50 hover:border-red-600 cursor-pointer transition-all duration-300 transform hover:-translate-y-2 flex flex-col"
-                        role="button"
-                        tabIndex={0}
-                        onKeyPress={(e) => e.key === 'Enter' && handleSelectPoll(poll.id)}
-                    >
-                        <div className="flex-grow">
-                            <h3 className="text-xl font-bold text-white mb-2">{poll.title}</h3>
-                            <p className="text-gray-300">{poll.candidates.length} candidates</p>
+                {activePolls.map((poll, index) => {
+                    const gradientClass = POLL_CARD_GRADIENTS[index % POLL_CARD_GRADIENTS.length];
+                    return (
+                        <div 
+                            key={poll.id} 
+                            onClick={() => handleSelectPoll(poll.id)}
+                            className="relative group bg-gray-800/60 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-700/50 cursor-pointer transition-all duration-300 transform hover:-translate-y-2 overflow-hidden"
+                            role="button"
+                            tabIndex={0}
+                            onKeyPress={(e) => e.key === 'Enter' && handleSelectPoll(poll.id)}
+                        >
+                            <div className={`absolute inset-0 bg-gradient-to-br ${gradientClass} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
+                            <div className={`absolute -inset-0.5 bg-gradient-to-r ${gradientClass} rounded-2xl blur opacity-0 group-hover:opacity-75 transition duration-500 group-hover:duration-300`}></div>
+                            
+                            <div className="absolute bottom-4 right-4 text-yellow-300 animate-twinkle">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                                </svg>
+                            </div>
+                            
+                            <div className="relative flex flex-col justify-between p-6 h-full min-h-[150px]">
+                                <div className="flex-grow">
+                                    <h3 className="text-2xl font-bold text-white mb-2">{poll.title}</h3>
+                                    <p className="text-gray-300 group-hover:text-white transition-colors">{poll.candidates.length} candidates</p>
+                                </div>
+                                <div className="mt-4 opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-300 ease-in-out">
+                                    <span className="font-semibold text-white flex items-center gap-2">
+                                        View Poll
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    )
+                })}
             </div>
         </div>
     </div>
