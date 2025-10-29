@@ -61,7 +61,31 @@ const recordVoteInPoll = (pollId: string): void => {
 /**
  * Casts a vote by calling the API and then recording the vote locally.
  */
-export const castVote = async (pollId: string, candidateId: string, username: string): Promise<void> => {
-  await apiService.castVote(pollId, candidateId, username);
-  recordVoteInPoll(pollId);
+export const castVote = async (poll: Poll, candidateName: string, user: User): Promise<void> => {
+
+  await apiService.logVoteToSheet(user.username,'users', poll.resultsheet, candidateName);
+/*
+  // First, cast the vote with the existing mechanism
+  await apiService.castVote(poll.id, candidateId, user.username);
+
+  // Then, log the vote to the new sheet API
+  const candidate = poll.candidates.find(c => c.id === candidateId);
+  if (candidate && poll.resultsheet) {
+    try {
+      await apiService.logVoteToSheet(user.username,'users', poll.resultsheet, candidateId);
+    } catch (logError) {
+      console.error("Failed to log vote to sheet, but vote was cast successfully.", logError);
+      // Do not re-throw, so the main voting flow is not interrupted
+    }
+  } else {
+    if (!poll.resultsheet) {
+        console.warn(`Poll "${poll.title}" does not have a resultsheet configured. Skipping vote log.`);
+    }
+    if (!candidate) {
+        console.error(`Candidate with id ${candidateId} not found in poll "${poll.title}". Skipping vote log.`);
+    }
+  }
+*/
+  // Finally, record the vote locally
+  recordVoteInPoll(poll.id);
 };

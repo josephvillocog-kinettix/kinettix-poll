@@ -9,6 +9,7 @@ export interface Poll {
   title: string;
   candidates: Candidate[];
   status: 'open' | 'closed';
+  resultsheet:string;
 }
 
 export class User {

@@ -1,6 +1,6 @@
 import { User, Poll, Candidate } from '../types';
 
-const API_URL = 'https://script.google.com/macros/s/AKfycbwNyNYjAi9TRI9PLaUwZxqe-_c1SGi3rfyb-Fm7bkACX0ZqERavwauT5qqhiDGTRQig/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbzf7KeZbSInNcNWw2QdjNWLyG2JVoAI_HT4yQ6xS5LInDhNGSPN9ohg0yVNdYYrQ4KL/exec';
 
 let cachedData: {
     users: User[];
@@ -51,6 +51,7 @@ const fetchData = async (): Promise<{ users: User[]; polls: Poll[] }> => {
                     id: pollId,
                     title: p.title,
                     status: p.status === 'open' ? 'open' : 'closed',
+                    resultsheet: p.resultsheet || '',
                     candidates: pollCandidatesData.map((c: any): Candidate => ({
                         id: String(c.id),
                         name: c.name,
@@ -94,18 +95,20 @@ export const clearCache = () => {
 
 export const updateUsers = async (usernames: string[]): Promise<void> => {
   try {
-    const response = await fetch(API_URL, {
+    // Using mode: 'no-cors' to prevent CORS errors with Google Apps Script.
+    // This makes the response opaque, so we cannot check for success.
+    // We assume success if the fetch promise resolves.
+    await fetch(API_URL, {
       method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8',
+      },
       body: JSON.stringify({
         action: 'updateUsers',
         payload: usernames,
       }),
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API request failed to update users with status ${response.status}: ${errorText}`);
-    }
 
     clearCache();
   } catch (error) {
@@ -116,28 +119,74 @@ export const updateUsers = async (usernames: string[]): Promise<void> => {
 
 export const castVote = async (pollId: string, candidateId: string, username: string): Promise<void> => {
   try {
-    const response = await fetch(API_URL, {
+    // Using mode: 'no-cors' to prevent CORS errors with Google Apps Script.
+    // This makes the response opaque, so we cannot check for success.
+    // We assume success if the fetch promise resolves.
+    // await fetch(API_URL, {
+    //   method: 'POST',
+    //   mode: 'no-cors',
+    //   headers: {
+    //     'Content-Type': 'text/plain;charset=utf-8',
+    //   },
+    //   body: JSON.stringify({
+    //     action: 'castVote',
+    //     payload: {
+    //       pollId,
+    //       candidateId,
+    //       username,
+    //     },
+    //   }),
+    // });
+    await fetch(API_URL, {
       method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8',
+      },
       body: JSON.stringify({
-        action: 'castVote',
-        payload: {
-          pollId,
-          candidateId,
-          username,
-        },
+        username:username,
+        targetSheetName: 'users',
+        destinationColumn: 'poll1',
+        value: 'Trapa, Adrian Merck',
       }),
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`API request failed to cast vote with status ${response.status}: ${errorText}`);
-    }
-    
     // Invalidate the cache to ensure the next data fetch includes the new vote.
     clearCache();
 
   } catch (error) {
     console.error("Failed to cast vote via API:", error);
+    throw error;
+  }
+};
+
+export const logVoteToSheet = async (
+  username:string,
+  targetSheetName: string,
+  destinationColumn: string,
+  candidateName: string
+): Promise<void> => {
+  try {
+    const json = JSON.stringify({
+        username:username,
+        targetSheetName: targetSheetName,
+        destinationColumn: destinationColumn,
+        value: candidateName,
+      });
+
+    // Using mode: 'no-cors' to prevent CORS errors with Google Apps Script.
+    // This makes the response opaque, so we cannot check for success.
+    // We assume success if the fetch promise resolves.
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'application/json', // CRITICAL: Tells the Apps Script that the body is JSON
+      },
+      body: json, // The JSON body passed to doPost(e)
+    });
+    console.debug(response);
+  } catch (error) {
+    console.error("Failed to log vote to sheet via API:", error);
     throw error;
   }
 };

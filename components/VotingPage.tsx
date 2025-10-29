@@ -44,11 +44,18 @@ const PollDetailView: React.FC<{ pollId: string; onBack: () => void; showBackBut
   };
   
   const handleVoteSubmit = async () => {
-    if (!selectedCandidateId || !currentUser) return;
+    if (!selectedCandidateId || !currentUser || !poll) return;
+
+    const selectedCandidate = poll.candidates.find(c => c.id === selectedCandidateId);
+    if (!selectedCandidate) {
+      setVoteError('An error occurred: The selected candidate could not be found.');
+      return;
+    }
+
     setIsSubmitting(true);
     setVoteError(null);
     try {
-      await votingService.castVote(pollId, selectedCandidateId, currentUser.username);
+      await votingService.castVote(poll, selectedCandidate.name, currentUser);
       setHasVoted(true);
     } catch (err) {
       setVoteError('An error occurred while casting your vote. Please try again.');
