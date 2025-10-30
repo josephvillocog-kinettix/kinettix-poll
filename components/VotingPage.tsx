@@ -94,7 +94,7 @@ const PollDetailView: React.FC<{ pollId: string; onBack: () => void; showBackBut
   if (!poll) {
     return (
       <div className="relative text-center p-8 mt-10 min-h-[calc(100vh-4rem)] flex flex-col justify-center items-center overflow-hidden">
-        <Snowfall />
+        <Snowfall count={40} minSize={10} maxSize={25} shape="star" />
         <div className="z-10">
           <h2 className="mt-6 text-3xl font-extrabold text-white">Error</h2>
           <p className="mt-2 text-lg text-gray-300">{error || 'Could not find the selected poll.'}</p>
@@ -208,7 +208,7 @@ const PollDetailView: React.FC<{ pollId: string; onBack: () => void; showBackBut
 
   return (
     <div className="relative min-h-[calc(100vh-4rem)] overflow-hidden flex flex-col">
-      <Snowfall />
+      <Snowfall count={40} minSize={10} maxSize={25} shape="star" />
       <div className="flex-grow">
           {mainContent}
       </div>
@@ -266,7 +266,7 @@ const VotingPage: React.FC<VotingPageProps> = ({ currentUser }) => {
   if (activePolls.length === 0) {
     return (
       <div className="relative text-center p-8 mt-10 min-h-[calc(100vh-4rem)] flex flex-col justify-center items-center overflow-hidden">
-        <Snowfall />
+        <Snowfall count={40} minSize={10} maxSize={25} shape="star" />
         <div className="z-10">
           <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-24 w-24 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -280,7 +280,7 @@ const VotingPage: React.FC<VotingPageProps> = ({ currentUser }) => {
 
   return (
     <div className="relative min-h-[calc(100vh-4rem)] overflow-hidden">
-        <Snowfall />
+        <Snowfall count={40} minSize={10} maxSize={25} shape="star" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 z-10 relative">
             <div className="text-center mb-12">
                 <h2 className="text-3xl font-extrabold text-white sm:text-4xl">Active Polls</h2>

@@ -3,6 +3,7 @@ import { Poll, User } from '../types';
 import { getAllPolls } from '../services/votingService';
 import * as authService from '../services/authService';
 import * as apiService from '../services/apiService';
+import Snowfall from './Snowfall';
 
 
 // --- Sub-components for the Accordion Layout ---
@@ -170,48 +171,54 @@ const DashboardPage: React.FC = () => {
     return null;
   }
 
-  if (error) {
-    return <p className="text-red-400 text-center mt-10 text-lg">{error}</p>
-  }
+  const pageContent = error ? (
+      <p className="text-red-400 text-center mt-10 text-lg">{error}</p>
+  ) : (
+    <>
+      {polls.length === 0 ? (
+          <div className="text-center p-8 mt-10 bg-gray-800/50 rounded-2xl border border-gray-700/50">
+              <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-24 w-24 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h2 className="mt-6 text-3xl font-extrabold text-white">No Polls Found</h2>
+              <p className="mt-2 text-lg text-gray-300">Create polls via the connected Google Sheet to see them here.</p>
+          </div>
+      ) : (
+          <>
+              <div className="flex justify-end mb-6">
+                  <label className="flex items-center space-x-3 cursor-pointer text-gray-300 hover:text-white p-2 rounded-lg hover:bg-gray-700/50 transition-colors">
+                      <input 
+                          type="checkbox" 
+                          checked={anonymize} 
+                          onChange={(e) => setAnonymize(e.target.checked)} 
+                          className="h-5 w-5 rounded bg-gray-700 border-gray-600 text-indigo-500 focus:ring-indigo-600"
+                      />
+                      <span>Anonymize Names</span>
+                  </label>
+              </div>
+              
+              <div className="space-y-4">
+                  {polls.map(poll => (
+                      <PollAccordionItem 
+                          key={poll.id} 
+                          poll={poll} 
+                          isExpanded={expandedPollId === poll.id}
+                          onToggle={() => handleTogglePoll(poll.id)}
+                          anonymize={anonymize}
+                      />
+                  ))}
+              </div>
+          </>
+      )}
+    </>
+  );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      
-        {polls.length === 0 ? (
-            <div className="text-center p-8 mt-10 bg-gray-800/50 rounded-2xl border border-gray-700/50">
-                <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-24 w-24 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <h2 className="mt-6 text-3xl font-extrabold text-white">No Polls Found</h2>
-                <p className="mt-2 text-lg text-gray-300">Create polls via the connected Google Sheet to see them here.</p>
-            </div>
-        ) : (
-            <>
-                <div className="flex justify-end mb-6">
-                    <label className="flex items-center space-x-3 cursor-pointer text-gray-300 hover:text-white p-2 rounded-lg hover:bg-gray-700/50 transition-colors">
-                        <input 
-                            type="checkbox" 
-                            checked={anonymize} 
-                            onChange={(e) => setAnonymize(e.target.checked)} 
-                            className="h-5 w-5 rounded bg-gray-700 border-gray-600 text-indigo-500 focus:ring-indigo-600"
-                        />
-                        <span>Anonymize Names</span>
-                    </label>
-                </div>
-                
-                <div className="space-y-4">
-                    {polls.map(poll => (
-                        <PollAccordionItem 
-                            key={poll.id} 
-                            poll={poll} 
-                            isExpanded={expandedPollId === poll.id}
-                            onToggle={() => handleTogglePoll(poll.id)}
-                            anonymize={anonymize}
-                        />
-                    ))}
-                </div>
-            </>
-        )}
+    <div className="relative min-h-[calc(100vh-4rem)] overflow-hidden">
+        <Snowfall count={30} minSize={8} maxSize={20} />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+            {pageContent}
+        </div>
     </div>
   );
 };

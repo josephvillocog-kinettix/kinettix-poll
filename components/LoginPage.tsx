@@ -16,7 +16,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
     const trimmedUsername = username.trim();
     
     if (!trimmedUsername) {
-      setError('Username cannot be empty.');
+      setError('User code cannot be empty.');
       return;
     }
 
@@ -25,7 +25,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
       await onLogin(trimmedUsername);
       // On success, the App component will re-render, and this component will unmount.
     } catch (err) {
-      setError('Invalid username. Please try again.');
+      setError('Invalid code. Please try again.');
       setIsLoggingIn(false);
     }
   };
@@ -46,24 +46,21 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
               Kinettix<span className="text-red-400">Poll</span>
             </h1>
           </div>
-          <p className="mt-2 text-gray-400">Please sign in to continue</p>
+          <p className="mt-2 text-gray-400">Please enter your Kinettix Code</p>
         </div>
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div>
-            <label htmlFor="username-input" className="block text-sm font-medium text-gray-300">
-              Username
-            </label>
             <div className="mt-1">
               <input
                 id="username-input"
-                name="username"
+                name="Kinettix Code"
                 type="text"
-                autoComplete="username"
+                autoComplete="User code"
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full px-3 py-2 text-white bg-gray-700 border border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                placeholder="username"
+                placeholder="Kinettix Code"
               />
             </div>
           </div>
