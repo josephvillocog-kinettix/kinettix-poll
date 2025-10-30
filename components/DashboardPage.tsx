@@ -4,6 +4,7 @@ import { getAllPolls } from '../services/votingService';
 import * as authService from '../services/authService';
 import * as apiService from '../services/apiService';
 import Snowfall from './Snowfall';
+import AdminConfirmationDialog from './AdminConfirmationDialog';
 
 
 // --- Sub-components for the Accordion Layout ---
@@ -102,6 +103,44 @@ const PollAccordionItem: React.FC<{ poll: Poll; isExpanded: boolean; onToggle: (
     );
 };
 
+const PollAccordionSkeleton: React.FC = () => {
+    return (
+        <div className="bg-gray-800/50 rounded-xl border border-gray-700/50 overflow-hidden p-6 animate-pulse">
+            <div className="flex justify-between items-center">
+                <div>
+                    <div className="h-6 bg-gray-700 rounded w-48 mb-3"></div>
+                    <div className="h-4 bg-gray-700 rounded w-32"></div>
+                </div>
+                <div className="h-6 w-6 bg-gray-700 rounded-md"></div>
+            </div>
+            <div className="space-y-4 mt-6 pt-6 border-t border-gray-700/50">
+                {/* Mimic 3 candidate rows */}
+                <div className="space-y-1.5">
+                    <div className="flex justify-between items-center">
+                        <div className="h-4 bg-gray-700 rounded w-2/3"></div>
+                        <div className="h-4 bg-gray-700 rounded w-8"></div>
+                    </div>
+                    <div className="h-2.5 bg-gray-700/50 rounded-full"></div>
+                </div>
+                <div className="space-y-1.5">
+                    <div className="flex justify-between items-center">
+                        <div className="h-4 bg-gray-700 rounded w-1/2"></div>
+                        <div className="h-4 bg-gray-700 rounded w-6"></div>
+                    </div>
+                    <div className="h-2.5 bg-gray-700/50 rounded-full"></div>
+                </div>
+                <div className="space-y-1.5">
+                    <div className="flex justify-between items-center">
+                        <div className="h-4 bg-gray-700 rounded w-3/4"></div>
+                        <div className="h-4 bg-gray-700 rounded w-4"></div>
+                    </div>
+                    <div className="h-2.5 bg-gray-700/50 rounded-full"></div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 
 const DashboardPage: React.FC = () => {
   const [polls, setPolls] = useState<Poll[]>([]);
@@ -109,6 +148,8 @@ const DashboardPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [expandedPollId, setExpandedPollId] = useState<string | null>(null);
   const [anonymize, setAnonymize] = useState(true);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [isConfirmingDeAnonymize, setIsConfirmingDeAnonymize] = useState(false);
 
   useEffect(() => {
     const fetchAndProcessData = async () => {
@@ -158,17 +199,54 @@ const DashboardPage: React.FC = () => {
     };
 
     fetchAndProcessData();
-    const interval = setInterval(fetchAndProcessData, 4000);
-    return () => clearInterval(interval);
-  }, []);
+    let intervalId: number | undefined;
+
+    if (autoRefresh) {
+        intervalId = setInterval(fetchAndProcessData, 4000);
+    }
+    
+    return () => {
+        if (intervalId) {
+            clearInterval(intervalId);
+        }
+    };
+  }, [autoRefresh]);
 
   const handleTogglePoll = (pollId: string) => {
     setExpandedPollId(currentId => (currentId === pollId ? null : pollId));
   };
   
-  // Render nothing on the initial load to prevent content flashing.
+  const handleAnonymizeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      // Re-anonymizing doesn't require confirmation
+      setAnonymize(true);
+    } else {
+      // De-anonymizing requires confirmation
+      setIsConfirmingDeAnonymize(true);
+    }
+  };
+
+  const handleDeAnonymizeConfirm = () => {
+    setAnonymize(false);
+    setIsConfirmingDeAnonymize(false);
+  };
+
   if (isLoading) {
-    return null;
+    return (
+        <div className="relative min-h-[calc(100vh-4rem)] overflow-hidden">
+            <Snowfall count={30} minSize={8} maxSize={20} />
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
+                <div className="flex flex-col sm:flex-row justify-end items-center gap-4 mb-6">
+                    <div className="h-10 bg-gray-700/50 rounded-lg w-40 animate-pulse"></div>
+                    <div className="h-10 bg-gray-700/50 rounded-lg w-40 animate-pulse"></div>
+                </div>
+                <div className="space-y-4">
+                    <PollAccordionSkeleton />
+                    <PollAccordionSkeleton />
+                </div>
+            </div>
+        </div>
+    );
   }
 
   const pageContent = error ? (
@@ -185,15 +263,24 @@ const DashboardPage: React.FC = () => {
           </div>
       ) : (
           <>
-              <div className="flex justify-end mb-6">
+              <div className="flex flex-col sm:flex-row justify-end items-center gap-4 mb-6">
                   <label className="flex items-center space-x-3 cursor-pointer text-gray-300 hover:text-white p-2 rounded-lg hover:bg-gray-700/50 transition-colors">
                       <input 
                           type="checkbox" 
                           checked={anonymize} 
-                          onChange={(e) => setAnonymize(e.target.checked)} 
+                          onChange={handleAnonymizeChange} 
                           className="h-5 w-5 rounded bg-gray-700 border-gray-600 text-indigo-500 focus:ring-indigo-600"
                       />
                       <span>Anonymize Names</span>
+                  </label>
+                  <label className="flex items-center space-x-3 cursor-pointer text-gray-300 hover:text-white p-2 rounded-lg hover:bg-gray-700/50 transition-colors">
+                      <input 
+                          type="checkbox" 
+                          checked={autoRefresh} 
+                          onChange={(e) => setAutoRefresh(e.target.checked)} 
+                          className="h-5 w-5 rounded bg-gray-700 border-gray-600 text-indigo-500 focus:ring-indigo-600"
+                      />
+                      <span>Auto Refresh</span>
                   </label>
               </div>
               
@@ -219,6 +306,13 @@ const DashboardPage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
             {pageContent}
         </div>
+        <AdminConfirmationDialog
+          isOpen={isConfirmingDeAnonymize}
+          onClose={() => setIsConfirmingDeAnonymize(false)}
+          onConfirm={handleDeAnonymizeConfirm}
+          title="Disable Anonymization"
+          description="This will reveal all candidate names. To proceed, please enter the keyword."
+        />
     </div>
   );
 };

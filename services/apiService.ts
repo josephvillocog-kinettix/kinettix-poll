@@ -12,71 +12,84 @@ const fetchData = async (): Promise<{ users: User[]; polls: Poll[] }> => {
         return cachedData;
     }
 
-    try {
-        const response = await fetch(API_URL);
-        if (!response.ok) {
-            throw new Error(`API request failed with status ${response.status}`);
-        }
-        const json: any = await response.json();
+    const maxRetries = 3;
+    const retryDelay = 1000; // 1 second
+    let lastError: Error | null = null;
 
-        // The API nests all data under a 'data' object.
-        const data = json.data;
-        if (!data) {
-            throw new Error("API response is missing the 'data' object.");
-        }
-
-        // Get the arrays directly by their keys as specified by the user.
-        const userList: any[] = data.users || [];
-        const pollList: any[] = data.polls || [];
-        const candidateList: any[] = data.candidates || [];
-
-        // Map candidates to their respective polls using poll_id.
-        const candidatesByPollId = new Map<string, any[]>();
-        candidateList.forEach(c => {
-            if (c.poll_id === undefined) return;
-            const pollId = String(c.poll_id);
-            if (!candidatesByPollId.has(pollId)) {
-                candidatesByPollId.set(pollId, []);
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const response = await fetch(API_URL);
+            if (!response.ok) {
+                throw new Error(`API request failed with status ${response.status}`);
             }
-            candidatesByPollId.get(pollId)!.push(c);
-        });
+            const json: any = await response.json();
 
-        const polls: Poll[] = (pollList || [])
-            .filter(p => p && p.id && p.title && p.status)
-            .map((p): Poll => {
-                const pollId = String(p.id);
-                const pollCandidatesData = candidatesByPollId.get(pollId) || [];
-                
-                return {
-                    id: pollId,
-                    title: p.title,
-                    status: p.status === 'open' ? 'open' : 'closed',
-                    resultsheet: p.resultsheet || '',
-                    candidates: pollCandidatesData.map((c: any): Candidate => ({
-                        id: String(c.id),
-                        name: c.name,
-                        votes: Number(c.votes) || 0,
-                    })),
+            // The API nests all data under a 'data' object.
+            const data = json.data;
+            if (!data) {
+                throw new Error("API response is missing the 'data' object.");
+            }
+
+            // Get the arrays directly by their keys as specified by the user.
+            const userList: any[] = data.users || [];
+            const pollList: any[] = data.polls || [];
+            const candidateList: any[] = data.candidates || [];
+
+            // Map candidates to their respective polls using poll_id.
+            const candidatesByPollId = new Map<string, any[]>();
+            candidateList.forEach(c => {
+                if (c.poll_id === undefined) return;
+                const pollId = String(c.poll_id);
+                if (!candidatesByPollId.has(pollId)) {
+                    candidatesByPollId.set(pollId, []);
                 }
+                candidatesByPollId.get(pollId)!.push(c);
             });
-        
-        const users: User[] = (userList || [])
-            .filter(u => u && u.username && u.name && (u.department || u.depart))
-            .map(u => new User(u.username, u.name, u.department || u.depart, u.poll1 || '', u.poll2 || ''));
-        
-        // Always ensure admin user exists
-        if (!users.some(u => u.username === 'saitama')) {
-            users.push(new User('saitama', 'Saitama', 'Admin', '', ''));
+
+            const polls: Poll[] = (pollList || [])
+                .filter(p => p && p.id && p.title && p.status)
+                .map((p): Poll => {
+                    const pollId = String(p.id);
+                    const pollCandidatesData = candidatesByPollId.get(pollId) || [];
+                    
+                    return {
+                        id: pollId,
+                        title: p.title,
+                        status: p.status === 'open' ? 'open' : 'closed',
+                        resultsheet: p.resultsheet || '',
+                        candidates: pollCandidatesData.map((c: any): Candidate => ({
+                            id: String(c.id),
+                            name: c.name,
+                            votes: Number(c.votes) || 0,
+                        })),
+                    }
+                });
+            
+            const users: User[] = (userList || [])
+                .filter(u => u && u.username && u.name && (u.department || u.depart))
+                .map(u => new User(u.username, u.name, u.department || u.depart, u.poll1 || '', u.poll2 || ''));
+            
+            // Always ensure admin user exists
+            if (!users.some(u => u.username === 'saitama')) {
+                users.push(new User('saitama', 'Saitama', 'Admin', '', ''));
+            }
+
+            cachedData = { users, polls };
+            return cachedData; // Success
+        } catch (error) {
+            lastError = error as Error;
+            console.warn(`API fetch attempt ${attempt} failed:`, lastError.message);
+            if (attempt < maxRetries) {
+                // Increase delay for subsequent retries
+                await new Promise(resolve => setTimeout(resolve, retryDelay * attempt));
+            }
         }
-
-        cachedData = { users, polls };
-        return cachedData;
-
-    } catch (error) {
-        console.error("Failed to fetch or parse data from API:", error);
-        // Fallback to ensure admin can always log in to debug.
-        return { users: [new User('saitama', 'Saitama', 'Admin', '', '')], polls: [] };
     }
+
+    // This part is reached only if all retries fail
+    console.error("Failed to fetch or parse data from API after multiple retries:", lastError);
+    // Fallback to ensure admin can always log in to debug.
+    return { users: [new User('saitama', 'Saitama', 'Admin', '', '')], polls: [] };
 };
 
 export const getUsers = async (): Promise<User[]> => {
