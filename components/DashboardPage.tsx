@@ -158,7 +158,7 @@ const DashboardPage: React.FC = () => {
     };
 
     fetchAndProcessData();
-    const interval = setInterval(fetchAndProcessData, 2000);
+    const interval = setInterval(fetchAndProcessData, 4000);
     return () => clearInterval(interval);
   }, []);
 
