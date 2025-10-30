@@ -1,38 +1,65 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { User } from '../types';
+import { Poll, User } from '../types';
 import * as authService from '../services/authService';
+import * as votingService from '../services/votingService';
 import UserCard from './UserCard';
 
 const UserListPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
+  const [polls, setPolls] = useState<Poll[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showOnlyNonVoters, setShowOnlyNonVoters] = useState(false);
 
   useEffect(() => {
-    const fetchUsers = async () => {
+    const fetchData = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const userList = await authService.getUsers();
+        const [userList, pollList] = await Promise.all([
+          authService.getUsers(),
+          votingService.getAllPolls(),
+        ]);
         setUsers(userList);
+        setPolls(pollList);
       } catch (err) {
-        setError('Failed to load user list. Please try again later.');
+        setError('Failed to load user and poll data. Please try again later.');
       } finally {
         setIsLoading(false);
       }
     };
-    fetchUsers();
+    fetchData();
   }, []);
 
   const filteredUsers = useMemo(() => {
-    if (!searchQuery) return users;
-    const lowercasedQuery = searchQuery.toLowerCase();
-    return users.filter(user =>
-      user.name.toLowerCase().includes(lowercasedQuery) ||
-      user.department.toLowerCase().includes(lowercasedQuery)
-    );
-  }, [users, searchQuery]);
+    let results = users;
+
+    // Filter by search query
+    if (searchQuery) {
+      const lowercasedQuery = searchQuery.toLowerCase();
+      results = results.filter(user =>
+        user.name.toLowerCase().includes(lowercasedQuery) ||
+        user.department.toLowerCase().includes(lowercasedQuery)
+      );
+    }
+
+    // Filter by voting status
+    if (showOnlyNonVoters) {
+      const openPolls = polls.filter(p => p.status === 'open');
+      if (openPolls.length > 0) {
+        results = results.filter(user => {
+          const hasVotedInAllOpenPolls = openPolls.every(poll =>
+            votingService.hasVotedInPoll(poll, user)
+          );
+          return !hasVotedInAllOpenPolls;
+        });
+      }
+    }
+
+    return results;
+  }, [users, polls, searchQuery, showOnlyNonVoters]);
+
 
   if (isLoading) {
     return (
@@ -69,6 +96,17 @@ const UserListPage: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+        </div>
+        <div className="mt-4 flex justify-center">
+            <label className="flex items-center space-x-3 cursor-pointer text-gray-300 hover:text-white p-2 rounded-lg hover:bg-gray-700/50 transition-colors">
+                <input 
+                    type="checkbox" 
+                    checked={showOnlyNonVoters} 
+                    onChange={(e) => setShowOnlyNonVoters(e.target.checked)} 
+                    className="h-5 w-5 rounded bg-gray-700 border-gray-600 text-indigo-500 focus:ring-indigo-600"
+                />
+                <span>Show users who have not yet voted</span>
+            </label>
         </div>
       </div>
       
